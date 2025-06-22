@@ -1,11 +1,8 @@
 {
   "allowedUsers": [
     "v1adlenn",
-    "demo",
-    "demo_player",
-    "testuser",
-    "streamer1",
-    "streamer2"
+    "Mariachi",
+    "chubzarik_dota"
   ],
   "adminUsers": [
     "v1adlenn"
