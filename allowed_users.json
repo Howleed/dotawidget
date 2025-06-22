@@ -1,0 +1,14 @@
+{
+  "allowedUsers": [
+    "v1adlenn",
+    "demo",
+    "demo_player",
+    "testuser",
+    "streamer1",
+    "streamer2"
+  ],
+  "adminUsers": [
+    "v1adlenn"
+  ],
+  "description": "Список разрешенных пользователей для MMR виджета. Добавьте никнеймы стримеров, которым разрешено использовать виджет."
+} 

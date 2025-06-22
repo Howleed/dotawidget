@@ -283,11 +283,16 @@
                 this.playerName = 'demo';
                 this.lastViewerCount = 0;
                 this.currentRank = '';
+                this.isUserAllowed = true;
+                this.allowedUsers = [];
                 
                 this.parseUrlParams();
-                this.startUpdating();
-                this.loadInitialData();
-                this.startTwitchUpdates();
+                this.loadAllowedUsers().then(() => {
+                    this.checkUserPermissions();
+                    this.startUpdating();
+                    this.loadInitialData();
+                    this.startTwitchUpdates();
+                });
             }
             
             parseUrlParams() {
@@ -306,6 +311,54 @@
                 }
                 
                 this.updatePlayerName(this.playerName);
+            }
+            
+            async loadAllowedUsers() {
+                try {
+                    const response = await fetch('allowed_users.json');
+                    if (!response.ok) {
+                        console.warn('Файл allowed_users.json не найден, все пользователи разрешены');
+                        this.isUserAllowed = true;
+                        return;
+                    }
+                    const data = await response.json();
+                    this.allowedUsers = data.allowedUsers || [];
+                } catch (error) {
+                    console.warn('Ошибка загрузки списка разрешенных пользователей:', error);
+                    this.isUserAllowed = true;
+                }
+            }
+            
+            checkUserPermissions() {
+                if (this.allowedUsers.length === 0) {
+                    this.isUserAllowed = true;
+                    return;
+                }
+                
+                // Проверяем без учета регистра
+                const playerNameLower = this.playerName.toLowerCase();
+                const allowedUsersLower = this.allowedUsers.map(user => user.toLowerCase());
+                this.isUserAllowed = allowedUsersLower.includes(playerNameLower);
+                
+                if (!this.isUserAllowed) {
+                    console.log(`Пользователь "${this.playerName}" не найден в списке разрешенных`);
+                    this.showAccessDenied();
+                }
+            }
+            
+            showAccessDenied() {
+                // Показываем MMR = 1
+                this.updateMMRDisplay(1, false, false);
+                
+                // Показываем сообщение о запрете
+                this.matchResultsElement.innerHTML = '<span style="color: #ff0000; font-weight: bold; text-shadow: 0 0 8px rgba(255, 0, 0, 0.6);">STREAMER IS NOT ALLOWED</span>';
+                
+                // Скрываем иконку ранга
+                this.rankIconElement.style.display = 'none';
+                
+                // Отключаем обновления Twitch для неразрешенных пользователей
+                this.twitchViewersElement.textContent = 'restricted';
+                this.twitchViewersElement.style.color = '#ff6b6b';
             }
             
             getRankByMMR(mmr) {
@@ -335,6 +388,15 @@
             }
 
             async loadMMRData() {
+                // Если пользователь не разрешен, возвращаем ограниченные данные
+                if (!this.isUserAllowed) {
+                    return {
+                        mmr: 1,
+                        playerName: this.playerName,
+                        matchResults: null // null означает показать сообщение о запрете
+                    };
+                }
+                
                 try {
                     if (this.demoMMR) {
                         return {
@@ -425,6 +487,12 @@
             }
             
             updateMatchResults(matchResults) {
+                // Если matchResults === null, значит пользователь не разрешен
+                if (matchResults === null) {
+                    this.matchResultsElement.innerHTML = '<span style="color: #ff0000; font-weight: bold; text-shadow: 0 0 8px rgba(255, 0, 0, 0.6); font-size: 16px;">STREAMER IS NOT ALLOWED</span>';
+                    return;
+                }
+                
                 if (matchResults && Array.isArray(matchResults)) {
                     const reversedResults = [...matchResults].reverse();
                     
