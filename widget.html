@@ -285,6 +285,7 @@
                 this.currentRank = '';
                 this.isUserAllowed = true;
                 this.allowedUsers = [];
+                this.debugMode = false; // Для отладки
                 
                 this.parseUrlParams();
                 this.loadAllowedUsers().then(() => {
@@ -301,6 +302,7 @@
                 
                 const urlMMR = urlParams.get('mmr');
                 const urlRank = urlParams.get('rank');
+                const debugParam = urlParams.get('debug');
                 
                 if (urlMMR) {
                     this.demoMMR = parseInt(urlMMR);
@@ -310,27 +312,54 @@
                     this.demoRank = urlRank;
                 }
                 
+                // Режим отладки - отключает проверку разрешений
+                if (debugParam === 'true') {
+                    this.debugMode = true;
+                    console.log('🔧 Режим отладки включен - проверка разрешений отключена');
+                }
+                
                 this.updatePlayerName(this.playerName);
             }
             
             async loadAllowedUsers() {
                 try {
-                    const response = await fetch('allowed_users.json');
+                    console.log('Загружаем список разрешенных пользователей...');
+                    const timestamp = new Date().getTime();
+                    const response = await fetch(`allowed_users.json?v=${timestamp}`);
+                    
                     if (!response.ok) {
-                        console.warn('Файл allowed_users.json не найден, все пользователи разрешены');
+                        console.warn('Файл allowed_users.json не найден (статус:', response.status, '), все пользователи разрешены');
                         this.isUserAllowed = true;
+                        this.allowedUsers = [];
                         return;
                     }
+                    
                     const data = await response.json();
                     this.allowedUsers = data.allowedUsers || [];
+                    
+                    console.log('Загружен список разрешенных пользователей:', this.allowedUsers);
+                    console.log('Текущий пользователь:', this.playerName);
+                    
                 } catch (error) {
                     console.warn('Ошибка загрузки списка разрешенных пользователей:', error);
                     this.isUserAllowed = true;
+                    this.allowedUsers = [];
                 }
             }
             
             checkUserPermissions() {
+                console.log('Проверяем разрешения для пользователя:', this.playerName);
+                console.log('Список разрешенных пользователей:', this.allowedUsers);
+                
+                // Режим отладки - всегда разрешаем
+                if (this.debugMode) {
+                    console.log('🔧 Режим отладки - пользователь автоматически разрешен');
+                    this.isUserAllowed = true;
+                    return;
+                }
+                
                 if (this.allowedUsers.length === 0) {
+                    console.log('Список разрешенных пользователей пуст - разрешаем всех');
                     this.isUserAllowed = true;
                     return;
                 }
@@ -340,18 +369,27 @@
                 const allowedUsersLower = this.allowedUsers.map(user => user.toLowerCase());
                 this.isUserAllowed = allowedUsersLower.includes(playerNameLower);
                 
+                console.log('Проверка разрешений:');
+                console.log('- Игрок (нижний регистр):', playerNameLower);
+                console.log('- Разрешенные (нижний регистр):', allowedUsersLower);
+                console.log('- Результат проверки:', this.isUserAllowed);
+                
                 if (!this.isUserAllowed) {
-                    console.log(`Пользователь "${this.playerName}" не найден в списке разрешенных`);
+                    console.log(`❌ Пользователь "${this.playerName}" не найден в списке разрешенных`);
                     this.showAccessDenied();
+                } else {
+                    console.log(`✅ Пользователь "${this.playerName}" разрешен`);
                 }
             }
             
             showAccessDenied() {
+                console.log('🚫 Показываем сообщение о запрете доступа');
+                
                 // Показываем MMR = 1
                 this.updateMMRDisplay(1, false, false);
                 
                 // Показываем сообщение о запрете
-                this.matchResultsElement.innerHTML = '<span style="color: #ff0000; font-weight: bold; text-shadow: 0 0 8px rgba(255, 0, 0, 0.6);">STREAMER IS NOT ALLOWED</span>';
+                this.matchResultsElement.innerHTML = '<span style="color: #ff0000; font-weight: bold; text-shadow: 0 0 8px rgba(255, 0, 0, 0.6); font-size: 14px;">STREAMER IS NOT ALLOWED</span>';
                 
                 // Скрываем иконку ранга
                 this.rankIconElement.style.display = 'none';
@@ -359,6 +397,10 @@
                 // Отключаем обновления Twitch для неразрешенных пользователей
                 this.twitchViewersElement.textContent = 'restricted';
                 this.twitchViewersElement.style.color = '#ff6b6b';
+                
+                // Добавляем индикатор в консоль
+                console.log(`❌ Доступ запрещен для пользователя: ${this.playerName}`);
+                console.log('💡 Подсказка: добавьте ?debug=true к URL для режима отладки');
             }
             
             getRankByMMR(mmr) {
