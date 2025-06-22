@@ -248,7 +248,7 @@
         <div class="mmr-content">
             <div class="player-info">
                 <img class="rank-icon" id="rankIcon" src="" alt="Rank" style="display: none;">
-                <span class="player-name" id="playerName">Player</span>
+                <span class="player-name" id="playerName">Loading...</span>
                 <span class="twitch-viewers" id="twitchViewers">0 viewers</span>
             </div>
             <div class="mmr-section">
@@ -300,16 +300,22 @@
                 const urlParams = new URLSearchParams(window.location.search);
                 this.playerName = urlParams.get('player') || 'demo';
                 
+                console.log('📋 Параметры URL:');
+                console.log('- player:', urlParams.get('player'));
+                console.log('- Установлено имя игрока:', this.playerName);
+                
                 const urlMMR = urlParams.get('mmr');
                 const urlRank = urlParams.get('rank');
                 const debugParam = urlParams.get('debug');
                 
                 if (urlMMR) {
                     this.demoMMR = parseInt(urlMMR);
+                    console.log('- Демо MMR:', this.demoMMR);
                 }
                 
                 if (urlRank) {
                     this.demoRank = urlRank;
+                    console.log('- Демо ранг:', this.demoRank);
                 }
                 
                 // Режим отладки - отключает проверку разрешений
@@ -319,6 +325,7 @@
                 }
                 
                 this.updatePlayerName(this.playerName);
+                console.log('✅ Имя игрока установлено в DOM:', this.playerName);
             }
             
             async loadAllowedUsers() {
@@ -432,6 +439,7 @@
             async loadMMRData() {
                 // Если пользователь не разрешен, возвращаем ограниченные данные
                 if (!this.isUserAllowed) {
+                    console.log('🚫 Пользователь не разрешен, возвращаем ограниченные данные');
                     return {
                         mmr: 1,
                         playerName: this.playerName,
@@ -441,6 +449,7 @@
                 
                 try {
                     if (this.demoMMR) {
+                        console.log('📊 Используем демо данные, MMR:', this.demoMMR);
                         return {
                             mmr: this.demoMMR,
                             playerName: this.playerName,
@@ -448,17 +457,21 @@
                         };
                     }
                     
+                    console.log('📁 Загружаем данные из mmr_data.json...');
                     const timestamp = new Date().getTime();
                     const response = await fetch(`mmr_data.json?v=${timestamp}`);
                     if (!response.ok) {
                         throw new Error('Файл не найден');
                     }
                     const data = await response.json();
+                    console.log('📄 Загружены данные:', data);
+                    console.log('⚠️  ВАЖНО: Имя игрока из файла ИГНОРИРУЕТСЯ, используется из URL:', this.playerName);
                     return data;
                 } catch (error) {
                     console.warn('Ошибка загрузки MMR данных:', error);
                     
                     const demoMMR = 3000 + Math.floor(Math.random() * 3000);
+                    console.log('🎲 Генерируем случайные демо данные, MMR:', demoMMR);
                     return {
                         mmr: demoMMR,
                         playerName: this.playerName,
@@ -562,10 +575,8 @@
                     if (data.mmr !== undefined) {
                         this.updateMMRDisplay(data.mmr);
                     }
-                    if (data.playerName) {
-                        this.playerName = data.playerName;
-                        this.updatePlayerName(data.playerName);
-                    }
+                    // НЕ перезаписываем имя игрока из данных - используем только из URL
+                    // Имя игрока должно браться только из URL параметра
                     if (data.matchResults) {
                         this.updateMatchResults(data.matchResults);
                     }
@@ -632,10 +643,8 @@
                 if (data && data.mmr !== undefined) {
                     this.updateMMRDisplay(data.mmr);
                     
-                    if (data.playerName && data.playerName !== this.playerName) {
-                        this.playerName = data.playerName;
-                        this.updatePlayerName(data.playerName);
-                    }
+                    // НЕ обновляем имя игрока из данных - используем только из URL
+                    // Имя игрока фиксировано при загрузке страницы
                     
                     if (data.matchResults) {
                         this.updateMatchResults(data.matchResults);
