@@ -5,7 +5,9 @@
     "chubzarik_dota"
   ],
   "adminUsers": [
-    "v1adlenn"
+    "v1adlenn",
+    "Mariachi",
+    "chubzarik_dota"
   ],
   "description": "Список разрешенных пользователей для MMR виджета. Добавьте никнеймы стримеров, которым разрешено использовать виджет."
 } 
